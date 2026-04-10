@@ -1,0 +1,9 @@
+name = "chujiu-official"
+compatibility_date = "2026-04-10"
+
+[site]
+bucket = "./web"
+
+[env.production]
+name = "chujiu-production"
+route = "chujiu.com/*"
