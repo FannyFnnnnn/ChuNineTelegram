@@ -139,17 +139,50 @@ def get_config(topic_id: int):
 # ============ 核心功能 ============
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """管理員輸入 /start 初始化話題"""
+    """管理員輸入 /start 初始化話題 完全清空話題"""
     topic_id = update.message.message_thread_id or 2445
     config = get_config(topic_id)
+    user_id = update.effective_user.id
     
-    # 刪除使用者輸入的 /start 訊息
+    # 只有管理員可以使用 /start
+    if user_id not in ADMINS:
+        return
+    
+    # 🔴 第一步：清空整個話題所有歷史訊息
     try:
+        # 刪除使用者的 /start 訊息
         await update.message.delete()
+        
+        # 刪除這個話題過去100則訊息 完全清空
+        messages = await context.bot.get_chat_history(update.effective_chat.id, limit=100, message_thread_id=topic_id)
+        for msg in messages:
+            try:
+                await msg.delete()
+            except:
+                pass
     except:
         pass
     
-    # 首先發送按鈕列
+    # 第二步：發送歡迎圖片
+    photo_url = f"https://raw.githubusercontent.com/chujiu79/assets/main/{topic_id}.png"
+    
+    inline_keyboard = [
+        [
+            InlineKeyboardButton(config["inline_blue"], callback_data=f"blue_{topic_id}"),
+            InlineKeyboardButton(config["inline_red"], callback_data=f"red_{topic_id}")
+        ]
+    ]
+    
+    await context.bot.send_photo(
+        chat_id=update.effective_chat.id,
+        photo=photo_url,
+        caption=f"<b>🔰 {config['name']} 話題專區</b>\n\n{config['welcome']}",
+        parse_mode='HTML',
+        message_thread_id=topic_id,
+        reply_markup=InlineKeyboardMarkup(inline_keyboard)
+    )
+    
+    # 第三步：發送底部永久按鈕列
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=f"好的！玖玖聽到了您的命令！",
@@ -160,22 +193,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             one_time_keyboard=False,
             is_persistent=True
         )
-    )
-    
-    # 然後發送歡迎訊息 + 紅藍按鈕
-    inline_keyboard = [
-        [
-            InlineKeyboardButton(config["inline_blue"], callback_data=f"blue_{topic_id}"),
-            InlineKeyboardButton(config["inline_red"], callback_data=f"red_{topic_id}")
-        ]
-    ]
-    
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text=f"<b>🔰 {config['name']} 話題專區</b>\n\n{config['welcome']}",
-        parse_mode='HTML',
-        message_thread_id=topic_id,
-        reply_markup=InlineKeyboardMarkup(inline_keyboard)
     )
 
 
